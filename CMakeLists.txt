@@ -8,12 +8,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_subdirectory(external/juce)
 
+set(RSAT_PLUGIN_FORMATS VST3)
+
+if(APPLE)
+    list(APPEND RSAT_PLUGIN_FORMATS AU)
+endif()
+
 juce_add_plugin(RSaturator
     COMPANY_NAME "Ranze"
     BUNDLE_ID "com.ranze.rsaturator"
     PLUGIN_MANUFACTURER_CODE Rnze
     PLUGIN_CODE RSat
-    FORMATS VST3 AU
+    FORMATS ${RSAT_PLUGIN_FORMATS}
     PRODUCT_NAME "R-Saturator"
 )
 

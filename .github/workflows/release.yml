@@ -1,0 +1,92 @@
+name: Build Installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  macos:
+    name: macOS Installer
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$VERSION" = "$GITHUB_REF_NAME" ]; then VERSION="0.1.0"; fi
+          RSATURATOR_VERSION="$VERSION" ./scripts/package_macos.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: R-Saturator-macOS-pkg
+          path: build/packages/*.pkg
+
+  windows:
+    name: Windows Installer
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build --config Release
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $version = "${env:GITHUB_REF_NAME}" -replace '^v', ''
+          if ($version -eq "${env:GITHUB_REF_NAME}") { $version = "0.1.0" }
+          $vst3 = Get-ChildItem -Path build -Recurse -Directory -Filter "R-Saturator.vst3" | Select-Object -First 1
+          if (-not $vst3) { throw "R-Saturator.vst3 was not found under build" }
+          New-Item -ItemType Directory -Force -Path build/packages | Out-Null
+          $env:RSATURATOR_VERSION = $version
+          $env:RSATURATOR_VST3_DIR = $vst3.FullName
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer/windows/R-Saturator.iss
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: R-Saturator-Windows-Setup
+          path: build/packages/*.exe
+
+  github-release:
+    name: Attach To GitHub Release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [macos, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**/*
