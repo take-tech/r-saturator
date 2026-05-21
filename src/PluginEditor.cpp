@@ -7,67 +7,6 @@ namespace
 {
     constexpr int editorWidth = 620;
     constexpr int editorHeight = 284;
-
-    RSaturatorAudioProcessorEditor::Theme getThemeForIndex(int index)
-    {
-        switch (index)
-        {
-            case 1:
-                return {
-                    juce::Colour(0xff12110f),
-                    juce::Colour(0xff211d17),
-                    juce::Colour(0xffffb23f),
-                    juce::Colour(0xffffd27a),
-                    juce::Colour(0xfff5efe5),
-                    juce::Colour(0xffc9b79c),
-                    juce::Colour(0xff181612)
-                };
-
-            case 2:
-                return {
-                    juce::Colour(0xff120d10),
-                    juce::Colour(0xff21151b),
-                    juce::Colour(0xffff3f66),
-                    juce::Colour(0xffff8a9d),
-                    juce::Colour(0xfff7edf1),
-                    juce::Colour(0xffd0a8b3),
-                    juce::Colour(0xff181014)
-                };
-
-            case 3:
-                return {
-                    juce::Colour(0xff101112),
-                    juce::Colour(0xff1c1e20),
-                    juce::Colour(0xffd8d8d8),
-                    juce::Colour(0xffffffff),
-                    juce::Colour(0xfff2f2f2),
-                    juce::Colour(0xffb6b8ba),
-                    juce::Colour(0xff17191b)
-                };
-
-            case 4:
-                return {
-                    juce::Colour(0xfffff8fb),
-                    juce::Colour(0xffffffff),
-                    juce::Colour(0xffff5c9a),
-                    juce::Colour(0xffff9dc3),
-                    juce::Colour(0xff30242a),
-                    juce::Colour(0xff8c6574),
-                    juce::Colour(0xffffedf4)
-                };
-
-            default:
-                return {
-                    juce::Colour(0xff111113),
-                    juce::Colour(0xff1d1d21),
-                    juce::Colour(0xffff4f1f),
-                    juce::Colour(0xffff9a3d),
-                    juce::Colour(0xfff2f2f2),
-                    juce::Colour(0xffd8d8d8),
-                    juce::Colour(0xff17171a)
-                };
-        }
-    }
 }
 
 RSaturatorAudioProcessorEditor::RSaturatorAudioProcessorEditor(RSaturatorAudioProcessor& ownerProcessor)
@@ -96,19 +35,9 @@ void RSaturatorAudioProcessorEditor::paint(juce::Graphics& g)
 {
     const auto theme = getCurrentTheme();
 
-    g.fillAll(theme.background);
-
-    auto bounds = getLocalBounds().toFloat();
-    g.setColour(theme.panel);
-    g.fillRoundedRectangle(bounds.reduced(12.0f), 8.0f);
-
-    g.setColour(theme.accent);
-    g.setFont(juce::FontOptions(24.0f, juce::Font::bold));
-    g.drawText("R-Saturator", 28, 20, getWidth() - 56, 32, juce::Justification::centredLeft);
-
-    g.setColour(theme.mutedText);
-    g.setFont(juce::FontOptions(13.0f));
-    g.drawText("Analog color, softly driven", 30, 52, getWidth() - 60, 22, juce::Justification::centredLeft);
+    ranze::ui::drawPluginPanel(g, getLocalBounds(), theme);
+    ranze::ui::drawPluginTitle(g, { 28, 20, getWidth() - 56, 32 }, theme, "R-Saturator");
+    ranze::ui::drawPluginSubtitle(g, { 30, 52, getWidth() - 60, 22 }, theme, "Analog color, softly driven");
 }
 
 void RSaturatorAudioProcessorEditor::resized()
@@ -157,18 +86,12 @@ void RSaturatorAudioProcessorEditor::configureKnob(
 void RSaturatorAudioProcessorEditor::applyTheme()
 {
     const auto theme = getCurrentTheme();
-    const auto trackColour = getCurrentThemeIndex() == 4
-        ? juce::Colour(0xffd8b9c8)
-        : theme.panel.brighter(0.55f);
+    const auto themeId = ranze::ui::getThemeIdForIndex(getCurrentThemeIndex());
 
     for (auto& knob : knobs)
     {
-        knob.slider.setColour(juce::Slider::rotarySliderFillColourId, theme.accent);
-        knob.slider.setColour(juce::Slider::rotarySliderOutlineColourId, trackColour);
-        knob.slider.setColour(juce::Slider::thumbColourId, theme.accentAlt);
-        knob.slider.setColour(juce::Slider::textBoxTextColourId, theme.text);
-        knob.slider.setColour(juce::Slider::textBoxBackgroundColourId, theme.control);
-        knob.label.setColour(juce::Label::textColourId, theme.text);
+        ranze::ui::applyRotarySliderTheme(knob.slider, theme, themeId);
+        ranze::ui::applyLabelTheme(knob.label, theme);
     }
 
     effectButton.setColour(juce::ToggleButton::textColourId, theme.text);
@@ -262,9 +185,9 @@ int RSaturatorAudioProcessorEditor::getCurrentThemeIndex() const
     return 0;
 }
 
-RSaturatorAudioProcessorEditor::Theme RSaturatorAudioProcessorEditor::getCurrentTheme() const
+ranze::ui::Theme RSaturatorAudioProcessorEditor::getCurrentTheme() const
 {
-    return getThemeForIndex(getCurrentThemeIndex());
+    return ranze::ui::getThemeForIndex(getCurrentThemeIndex());
 }
 
 RSaturatorAudioProcessorEditor::ThemeIconButton::ThemeIconButton()
@@ -273,7 +196,7 @@ RSaturatorAudioProcessorEditor::ThemeIconButton::ThemeIconButton()
     setTitle("Theme");
 }
 
-void RSaturatorAudioProcessorEditor::ThemeIconButton::setTheme(Theme newTheme)
+void RSaturatorAudioProcessorEditor::ThemeIconButton::setTheme(ranze::ui::Theme newTheme)
 {
     theme = newTheme;
     repaint();

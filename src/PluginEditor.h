@@ -5,6 +5,8 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include <ranze_plugin_ui/Theme.h>
+
 #include "PluginProcessor.h"
 
 class RSaturatorAudioProcessorEditor final : public juce::AudioProcessorEditor,
@@ -18,17 +20,6 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
 
-    struct Theme
-    {
-        juce::Colour background;
-        juce::Colour panel;
-        juce::Colour accent;
-        juce::Colour accentAlt;
-        juce::Colour text;
-        juce::Colour mutedText;
-        juce::Colour control;
-    };
-
 private:
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     using ComboBoxAttachment = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
@@ -38,11 +29,11 @@ private:
     {
     public:
         ThemeIconButton();
-        void setTheme(Theme newTheme);
+        void setTheme(ranze::ui::Theme newTheme);
         void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override;
 
     private:
-        Theme theme;
+        ranze::ui::Theme theme { ranze::ui::getDefaultTheme() };
     };
 
     struct Knob
@@ -59,7 +50,7 @@ private:
     void setThemeIndex(int themeIndex);
     void applyTheme();
     int getCurrentThemeIndex() const;
-    Theme getCurrentTheme() const;
+    ranze::ui::Theme getCurrentTheme() const;
     void parameterChanged(const juce::String& parameterID, float newValue) override;
     void handleAsyncUpdate() override;
 

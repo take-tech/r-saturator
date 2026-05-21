@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_subdirectory(external/juce)
+add_subdirectory(external/ranze-plugin-ui)
 
 set(RSAT_PLUGIN_FORMATS VST3)
 
@@ -48,6 +49,7 @@ target_link_libraries(RSaturator
     PRIVATE
         juce::juce_audio_utils
         juce::juce_dsp
+        ranze::plugin_ui
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
