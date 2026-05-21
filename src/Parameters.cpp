@@ -85,6 +85,17 @@ namespace rsat::param
             percentToText,
             textToPercent));
 
+        params.push_back(std::make_unique<juce::AudioParameterBool>(
+            juce::ParameterID { effectOn, 1 },
+            "Effect On",
+            true));
+
+        params.push_back(std::make_unique<juce::AudioParameterChoice>(
+            juce::ParameterID { theme, 1 },
+            "Theme",
+            juce::StringArray { "Ember", "Amber", "Ruby", "Graphite", "Blush" },
+            0));
+
         return { params.begin(), params.end() };
     }
 }

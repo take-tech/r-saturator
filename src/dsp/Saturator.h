@@ -18,11 +18,14 @@ namespace rsat::dsp
     private:
         struct ChannelState
         {
-            float toneLowpassState = 0.0f;
+            float warmthLowState = 0.0f;
+            float dampingLowState = 0.0f;
+            float airLowState = 0.0f;
         };
 
         static float softClip(float sample) noexcept;
-        float processTone(float sample, ChannelState& state) const noexcept;
+        static float getOnePoleCoefficient(float cutoffHz, double sampleRate) noexcept;
+        float processTone(float sample, float tone, ChannelState& state) const noexcept;
 
         double currentSampleRate = 44100.0;
         int currentNumChannels = 0;

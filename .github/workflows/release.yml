@@ -25,7 +25,7 @@ jobs:
       - name: Package
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          if [ "$VERSION" = "$GITHUB_REF_NAME" ]; then VERSION="0.1.0"; fi
+          if [ "$VERSION" = "$GITHUB_REF_NAME" ]; then VERSION="0.2.0"; fi
           RSATURATOR_VERSION="$VERSION" ./scripts/package_macos.sh
 
       - name: Upload artifact
@@ -59,7 +59,7 @@ jobs:
         shell: pwsh
         run: |
           $version = "${env:GITHUB_REF_NAME}" -replace '^v', ''
-          if ($version -eq "${env:GITHUB_REF_NAME}") { $version = "0.1.0" }
+          if ($version -eq "${env:GITHUB_REF_NAME}") { $version = "0.2.0" }
           $vst3 = Get-ChildItem -Path build -Recurse -Directory -Filter "R-Saturator.vst3" | Select-Object -First 1
           if (-not $vst3) { throw "R-Saturator.vst3 was not found under build" }
           New-Item -ItemType Directory -Force -Path build/packages | Out-Null

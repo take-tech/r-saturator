@@ -1,7 +1,7 @@
 #define MyAppName "R-Saturator"
 #define MyAppVersion GetEnv("RSATURATOR_VERSION")
 #if MyAppVersion == ""
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "0.2.0"
 #endif
 #define MyAppPublisher "Ranze"
 #define MyAppURL "https://github.com/take-tech/r-saturator"

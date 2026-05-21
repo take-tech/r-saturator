@@ -9,6 +9,8 @@ namespace rsat::param
     static constexpr auto tone       = "tone";
     static constexpr auto outputGain = "outputGain";
     static constexpr auto mix        = "mix";
+    static constexpr auto effectOn   = "effectOn";
+    static constexpr auto theme      = "theme";
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 }

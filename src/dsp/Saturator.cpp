@@ -30,7 +30,11 @@ namespace rsat::dsp
     void Saturator::reset()
     {
         for (auto& state : channelStates)
-            state.toneLowpassState = 0.0f;
+        {
+            state.warmthLowState = 0.0f;
+            state.dampingLowState = 0.0f;
+            state.airLowState = 0.0f;
+        }
 
         inputGain.reset(currentSampleRate, 0.02);
         driveAmount.reset(currentSampleRate, 0.02);
@@ -57,10 +61,9 @@ namespace rsat::dsp
         {
             const auto inGain = inputGain.getNextValue();
             const auto drive = driveAmount.getNextValue();
+            const auto tone = toneAmount.getNextValue();
             const auto outGain = outputGain.getNextValue();
             const auto wetMix = mixAmount.getNextValue();
-
-            juce::ignoreUnused(toneAmount.getNextValue());
 
             const auto internalDrive = 1.0f + drive * 8.0f;
             const auto driveCompensation = 1.0f / std::sqrt(internalDrive);
@@ -73,7 +76,7 @@ namespace rsat::dsp
 
                 auto wet = dry * inGain;
                 wet = softClip(wet * internalDrive) * driveCompensation;
-                wet = processTone(wet, state);
+                wet = processTone(wet, tone, state);
                 wet *= outGain;
 
                 samples[sampleIndex] = dry + (wet - dry) * wetMix;
@@ -89,16 +92,50 @@ namespace rsat::dsp
         return sample / (1.0f + std::abs(sample));
     }
 
-    float Saturator::processTone(float sample, ChannelState& state) const noexcept
+    float Saturator::getOnePoleCoefficient(float cutoffHz, double sampleRate) noexcept
     {
-        const auto tone = toneAmount.getCurrentValue();
-        const auto cutoff = juce::jmap(tone, 0.0f, 1.0f, 1200.0f, 18000.0f);
-        const auto coefficient = 1.0f - std::exp(-2.0f * juce::MathConstants<float>::pi * cutoff
-                                                / static_cast<float>(currentSampleRate));
+        const auto safeCutoff = juce::jlimit(20.0f, 20000.0f, cutoffHz);
+        return 1.0f - std::exp(-2.0f * juce::MathConstants<float>::pi * safeCutoff
+                                / static_cast<float>(sampleRate));
+    }
 
-        state.toneLowpassState += coefficient * (sample - state.toneLowpassState);
+    float Saturator::processTone(float sample, float tone, ChannelState& state) const noexcept
+    {
+        const auto clampedTone = juce::jlimit(0.0f, 1.0f, tone);
+        const auto warmth = juce::jlimit(0.0f, 1.0f, (0.5f - clampedTone) * 2.0f);
+        const auto air = juce::jlimit(0.0f, 1.0f, (clampedTone - 0.5f) * 2.0f);
 
-        const auto brightness = juce::jmap(tone, 0.0f, 1.0f, 0.0f, 0.35f);
-        return state.toneLowpassState + (sample - state.toneLowpassState) * brightness;
+        const auto warmthCoefficient = getOnePoleCoefficient(420.0f + warmth * 260.0f, currentSampleRate);
+        state.warmthLowState += warmthCoefficient * (sample - state.warmthLowState);
+
+        const auto dampingCutoff = juce::jmap(clampedTone, 0.0f, 0.5f, 4200.0f, 18000.0f);
+        const auto dampingCoefficient = getOnePoleCoefficient(dampingCutoff, currentSampleRate);
+        state.dampingLowState += dampingCoefficient * (sample - state.dampingLowState);
+
+        const auto airCoefficient = getOnePoleCoefficient(3600.0f, currentSampleRate);
+        state.airLowState += airCoefficient * (sample - state.airLowState);
+
+        const auto lowMid = state.warmthLowState;
+        const auto damped = state.dampingLowState + (sample - state.dampingLowState) * 0.42f;
+        const auto airBand = sample - state.airLowState;
+
+        auto result = sample;
+
+        if (warmth > 0.0f)
+        {
+            const auto body = lowMid * (0.34f * warmth);
+            const auto roundedLow = (softClip(lowMid * (1.0f + warmth * 3.2f)) - lowMid) * (0.18f * warmth);
+            result = result * (1.0f - warmth * 0.28f) + damped * (warmth * 0.28f);
+            result += body + roundedLow;
+        }
+
+        if (air > 0.0f)
+        {
+            const auto sparkle = softClip(airBand * (1.0f + air * 5.0f)) * (0.20f * air);
+            const auto lift = airBand * (0.32f * air);
+            result += lift + sparkle;
+        }
+
+        return juce::jlimit(-1.8f, 1.8f, result);
     }
 }

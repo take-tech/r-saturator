@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "UserSettings.h"
 
 #include <memory>
 
@@ -9,6 +10,11 @@ RSaturatorAudioProcessor::RSaturatorAudioProcessor()
           .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       apvts(*this, nullptr, "Parameters", rsat::param::createParameterLayout())
 {
+    if (const auto themeIndex = rsat::settings::loadDefaultThemeIndex())
+    {
+        if (auto* parameter = apvts.getParameter(rsat::param::theme))
+            parameter->setValueNotifyingHost(parameter->convertTo0to1(static_cast<float>(*themeIndex)));
+    }
 }
 
 void RSaturatorAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -43,6 +49,11 @@ void RSaturatorAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
 
     for (auto channel = totalNumInputChannels; channel < totalNumOutputChannels; ++channel)
         buffer.clear(channel, 0, buffer.getNumSamples());
+
+    const auto effectOn = apvts.getRawParameterValue(rsat::param::effectOn)->load() >= 0.5f;
+
+    if (! effectOn)
+        return;
 
     const auto inputGain = apvts.getRawParameterValue(rsat::param::inputGain)->load();
     const auto drive = apvts.getRawParameterValue(rsat::param::drive)->load();
